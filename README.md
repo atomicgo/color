@@ -115,12 +115,12 @@ func main() {
   - [func \(c ANSIColor\) Sequence\(background bool\) string](<#ANSIColor.Sequence>)
 - [type Color](<#Color>)
   - [func NewColorFromHex\(hex string\) Color](<#NewColorFromHex>)
+  - [func NewColorFromRGB\(r, g, b uint8\) Color](<#NewColorFromRGB>)
 - [type Mode](<#Mode>)
   - [func \(m Mode\) String\(\) string](<#Mode.String>)
 - [type Modifier](<#Modifier>)
   - [func \(m Modifier\) Sequence\(\) string](<#Modifier.Sequence>)
 - [type RGBColor](<#RGBColor>)
-  - [func NewColorFromRGB\(r, g, b uint8\) RGBColor](<#NewColorFromRGB>)
   - [func \(c RGBColor\) Hex\(\) string](<#RGBColor.Hex>)
   - [func \(c RGBColor\) Sequence\(background bool\) string](<#RGBColor.Sequence>)
 - [type Style](<#Style>)
@@ -278,6 +278,15 @@ func NewColorFromHex(hex string) Color
 
 NewColorFromHex creates a new Color from a hex string. If the hex string is invalid, NoColor is returned.
 
+<a name="NewColorFromRGB"></a>
+### func [NewColorFromRGB](<https://github.com/atomicgo/color/blob/main/color-rgb.go#L20>)
+
+```go
+func NewColorFromRGB(r, g, b uint8) Color
+```
+
+NewColorFromRGB creates a new Color from RGB values.
+
 <a name="Mode"></a>
 ## type [Mode](<https://github.com/atomicgo/color/blob/main/mode.go#L4>)
 
@@ -347,15 +356,6 @@ type RGBColor struct {
     R, G, B uint8
 }
 ```
-
-<a name="NewColorFromRGB"></a>
-### func [NewColorFromRGB](<https://github.com/atomicgo/color/blob/main/color-rgb.go#L20>)
-
-```go
-func NewColorFromRGB(r, g, b uint8) RGBColor
-```
-
-NewColorFromRGB creates a new RGBColor.
 
 <a name="RGBColor.Hex"></a>
 ### func \(RGBColor\) [Hex](<https://github.com/atomicgo/color/blob/main/color-rgb.go#L15>)
