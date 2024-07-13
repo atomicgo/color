@@ -16,8 +16,8 @@ func (c RGBColor) Hex() string {
 	return fmt.Sprintf("#%02X%02X%02X", c.R, c.G, c.B)
 }
 
-// NewColorFromRGB creates a new RGBColor.
-func NewColorFromRGB(r, g, b uint8) RGBColor {
+// NewColorFromRGB creates a new Color from RGB values.
+func NewColorFromRGB(r, g, b uint8) Color {
 	return RGBColor{r, g, b}
 }
 
