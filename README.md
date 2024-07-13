@@ -108,7 +108,6 @@ func main() {
 ## Index
 
 - [Variables](<#variables>)
-- [func Sprint\(a ...any\) string](<#Sprint>)
 - [type ANSI256Color](<#ANSI256Color>)
   - [func \(c ANSI256Color\) Sequence\(background bool\) string](<#ANSI256Color.Sequence>)
   - [func \(c ANSI256Color\) String\(\) string](<#ANSI256Color.String>)
@@ -126,8 +125,17 @@ func main() {
   - [func \(c RGBColor\) Sequence\(background bool\) string](<#RGBColor.Sequence>)
 - [type Style](<#Style>)
   - [func NewStyle\(foregroundColor, backgroundColor Color, modifiers ...Modifier\) Style](<#NewStyle>)
+  - [func \(s Style\) Fprint\(w io.Writer, a ...any\) \(n int, err error\)](<#Style.Fprint>)
+  - [func \(s Style\) Fprintf\(w io.Writer, format string, a ...any\) \(n int, err error\)](<#Style.Fprintf>)
+  - [func \(s Style\) Fprintfln\(w io.Writer, format string, a ...any\) \(n int, err error\)](<#Style.Fprintfln>)
+  - [func \(s Style\) Fprintln\(w io.Writer, a ...any\) \(n int, err error\)](<#Style.Fprintln>)
+  - [func \(s Style\) Print\(a ...any\)](<#Style.Print>)
+  - [func \(s Style\) Printf\(format string, a ...any\)](<#Style.Printf>)
+  - [func \(s Style\) Printfln\(format string, a ...any\)](<#Style.Printfln>)
+  - [func \(s Style\) Println\(a ...any\)](<#Style.Println>)
   - [func \(s Style\) Sequence\(\) string](<#Style.Sequence>)
   - [func \(s Style\) Sprint\(a ...any\) string](<#Style.Sprint>)
+  - [func \(s Style\) Sprintf\(format string, a ...any\) string](<#Style.Sprintf>)
 
 
 ## Variables
@@ -170,14 +178,11 @@ var (
 )
 ```
 
-<a name="Sprint"></a>
-## func [Sprint](<https://github.com/atomicgo/color/blob/main/color.go#L11>)
+<a name="Writer"></a>
 
 ```go
-func Sprint(a ...any) string
+var Writer io.Writer = os.Stdout
 ```
-
-
 
 <a name="ANSI256Color"></a>
 ## type [ANSI256Color](<https://github.com/atomicgo/color/blob/main/color-ansi256.go#L3>)
@@ -248,7 +253,7 @@ func (c ANSIColor) Sequence(background bool) string
 
 
 <a name="Color"></a>
-## type [Color](<https://github.com/atomicgo/color/blob/main/color.go#L7-L9>)
+## type [Color](<https://github.com/atomicgo/color/blob/main/color.go#L10-L12>)
 
 
 
@@ -371,7 +376,7 @@ func (c RGBColor) Sequence(background bool) string
 
 
 <a name="Style"></a>
-## type [Style](<https://github.com/atomicgo/color/blob/main/style.go#L8-L13>)
+## type [Style](<https://github.com/atomicgo/color/blob/main/style.go#L9-L14>)
 
 
 
@@ -385,7 +390,7 @@ type Style struct {
 ```
 
 <a name="NewStyle"></a>
-### func [NewStyle](<https://github.com/atomicgo/color/blob/main/style.go#L15>)
+### func [NewStyle](<https://github.com/atomicgo/color/blob/main/style.go#L16>)
 
 ```go
 func NewStyle(foregroundColor, backgroundColor Color, modifiers ...Modifier) Style
@@ -393,8 +398,80 @@ func NewStyle(foregroundColor, backgroundColor Color, modifiers ...Modifier) Sty
 
 
 
+<a name="Style.Fprint"></a>
+### func \(Style\) [Fprint](<https://github.com/atomicgo/color/blob/main/style.go#L67>)
+
+```go
+func (s Style) Fprint(w io.Writer, a ...any) (n int, err error)
+```
+
+Fprint formats using the default formats for its operands and writes to w.
+
+<a name="Style.Fprintf"></a>
+### func \(Style\) [Fprintf](<https://github.com/atomicgo/color/blob/main/style.go#L72>)
+
+```go
+func (s Style) Fprintf(w io.Writer, format string, a ...any) (n int, err error)
+```
+
+Fprintf formats according to a format specifier and writes to w.
+
+<a name="Style.Fprintfln"></a>
+### func \(Style\) [Fprintfln](<https://github.com/atomicgo/color/blob/main/style.go#L82>)
+
+```go
+func (s Style) Fprintfln(w io.Writer, format string, a ...any) (n int, err error)
+```
+
+Fprintfln formats according to a format specifier and writes to w.
+
+<a name="Style.Fprintln"></a>
+### func \(Style\) [Fprintln](<https://github.com/atomicgo/color/blob/main/style.go#L77>)
+
+```go
+func (s Style) Fprintln(w io.Writer, a ...any) (n int, err error)
+```
+
+Fprintln formats using the default formats for its operands and writes to w.
+
+<a name="Style.Print"></a>
+### func \(Style\) [Print](<https://github.com/atomicgo/color/blob/main/style.go#L87>)
+
+```go
+func (s Style) Print(a ...any)
+```
+
+Print formats using the default formats for its operands and writes to standard output.
+
+<a name="Style.Printf"></a>
+### func \(Style\) [Printf](<https://github.com/atomicgo/color/blob/main/style.go#L92>)
+
+```go
+func (s Style) Printf(format string, a ...any)
+```
+
+Printf formats according to a format specifier and writes to standard output.
+
+<a name="Style.Printfln"></a>
+### func \(Style\) [Printfln](<https://github.com/atomicgo/color/blob/main/style.go#L102>)
+
+```go
+func (s Style) Printfln(format string, a ...any)
+```
+
+Printfln formats according to a format specifier and writes to standard output.
+
+<a name="Style.Println"></a>
+### func \(Style\) [Println](<https://github.com/atomicgo/color/blob/main/style.go#L97>)
+
+```go
+func (s Style) Println(a ...any)
+```
+
+Println formats using the default formats for its operands and writes to standard output.
+
 <a name="Style.Sequence"></a>
-### func \(Style\) [Sequence](<https://github.com/atomicgo/color/blob/main/style.go#L31>)
+### func \(Style\) [Sequence](<https://github.com/atomicgo/color/blob/main/style.go#L32>)
 
 ```go
 func (s Style) Sequence() string
@@ -403,13 +480,22 @@ func (s Style) Sequence() string
 
 
 <a name="Style.Sprint"></a>
-### func \(Style\) [Sprint](<https://github.com/atomicgo/color/blob/main/style.go#L49>)
+### func \(Style\) [Sprint](<https://github.com/atomicgo/color/blob/main/style.go#L51>)
 
 ```go
 func (s Style) Sprint(a ...any) string
 ```
 
+Sprint formats using the default formats for its operands and returns the resulting string.
 
+<a name="Style.Sprintf"></a>
+### func \(Style\) [Sprintf](<https://github.com/atomicgo/color/blob/main/style.go#L62>)
+
+```go
+func (s Style) Sprintf(format string, a ...any) string
+```
+
+Sprintf formats according to a format specifier and returns the resulting string.
 
 Generated by [gomarkdoc](<https://github.com/princjef/gomarkdoc>)
 
