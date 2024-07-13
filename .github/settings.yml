@@ -4,7 +4,7 @@ repository:
   # See https://developer.github.com/v3/repos/#edit for all available settings.
 
   # A short description of the repository that will show up on GitHub
-  description: 📦 Template repository for AtomicGo repositories
+  description: 🎨 Simple colors for your terminal in Go
 
   # A comma-separated list of topics to set on the repository
   topics: atomicgo, hacktoberfest, go, golang, golang-library
