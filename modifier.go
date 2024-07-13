@@ -2,7 +2,7 @@ package color
 
 import "fmt"
 
-// Modifier type for text modifiers
+// Modifier type for text modifiers.
 type Modifier int
 
 const modifierSequence = "\033[%dm"
@@ -15,6 +15,7 @@ const (
 	Underline
 )
 
+// Sequence returns the ANSI escape sequence for the modifier.
 func (m Modifier) Sequence() string {
 	return fmt.Sprintf(modifierSequence, m)
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// RGBColor represents a color in the RGB color space.
 type RGBColor struct {
 	R, G, B uint8
 }
@@ -44,6 +45,7 @@ func NewColorFromHex(hex string) Color {
 	return NewColorFromRGB(uint8(r), uint8(g), uint8(b))
 }
 
+// Sequence returns the ANSI escape sequence for the color.
 func (c RGBColor) Sequence(background bool) string {
 	if background {
 		return fmt.Sprintf("\033[48;2;%d;%d;%dm", c.R, c.G, c.B)

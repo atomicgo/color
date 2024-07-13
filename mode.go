@@ -1,5 +1,6 @@
 package color
 
+// Mode represents the color mode used by the terminal.
 type Mode int
 
 const (

@@ -1,11 +1,14 @@
 package color
 
+// ANSI256Color represents a color in the ANSI256 color palette.
 type ANSI256Color uint8
 
+// String returns the hex code of the color.
 func (c ANSI256Color) String() string {
 	return ansi256Table[c]
 }
 
+// Sequence returns the ANSI escape sequence for the color.
 func (c ANSI256Color) Sequence(background bool) string {
 	return NewColorFromHex(c.String()).Sequence(background)
 }

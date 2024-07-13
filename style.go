@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// Style represents a text style with a foreground and background color and modifiers.
 type Style struct {
 	Foreground Color
 	Background Color
@@ -13,6 +14,7 @@ type Style struct {
 	Modifiers []Modifier
 }
 
+// NewStyle creates a new Style with the given foreground and background colors and modifiers.
 func NewStyle(foregroundColor, backgroundColor Color, modifiers ...Modifier) Style {
 	if foregroundColor == nil {
 		foregroundColor = NoColor
@@ -29,6 +31,7 @@ func NewStyle(foregroundColor, backgroundColor Color, modifiers ...Modifier) Sty
 	}
 }
 
+// Sequence returns the ANSI escape sequence for the style.
 func (s Style) Sequence() string {
 	var sb strings.Builder
 
