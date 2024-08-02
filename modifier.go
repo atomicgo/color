@@ -11,6 +11,7 @@ const modifierSequence = "\033[%dm"
 const (
 	Reset Modifier = iota
 	Bold
+	Faint
 	Italic
 	Underline
 )
