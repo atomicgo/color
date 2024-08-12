@@ -160,6 +160,9 @@ linters-settings:
       - r int # generic number (e.g. red or radius)
       - g int # generic number (e.g. green)
       - b int # generic number (e.g. blue)
+      - r int64 # generic number (e.g. red or radius)
+      - g int64 # generic number (e.g. green)
+      - b int64 # generic number (e.g. blue)
       - c int # generic number (e.g. count)
       - j int # generic number (e.g. index)
       - T any # generic type
