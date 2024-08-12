@@ -88,20 +88,20 @@ func (s Style) Fprintfln(w io.Writer, format string, a ...any) (n int, err error
 
 // Print formats using the default formats for its operands and writes to standard output.
 func (s Style) Print(a ...any) {
-	s.Fprint(Writer, a...)
+	_, _ = s.Fprint(Writer, a...)
 }
 
 // Printf formats according to a format specifier and writes to standard output.
 func (s Style) Printf(format string, a ...any) {
-	s.Fprintf(Writer, format, a...)
+	_, _ = s.Fprintf(Writer, format, a...)
 }
 
 // Println formats using the default formats for its operands and writes to standard output.
 func (s Style) Println(a ...any) {
-	s.Fprintln(Writer, a...)
+	_, _ = s.Fprintln(Writer, a...)
 }
 
 // Printfln formats according to a format specifier and writes to standard output.
 func (s Style) Printfln(format string, a ...any) {
-	s.Fprintfln(Writer, format, a...)
+	_, _ = s.Fprintfln(Writer, format, a...)
 }
