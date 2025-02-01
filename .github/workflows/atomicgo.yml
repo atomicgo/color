@@ -115,7 +115,7 @@ jobs:
         run: |
           echo "::group::Run custom CI system"
           echo "::notice::Counting unit tests"
-          unittest_count=$(go test -v -p 1 ./... | grep -c "RUN")
+          unittest_count=$(go test -v -p 1 ./... | tee /dev/tty | grep -c "RUN")
 
           echo "::notice::Replacing badge in README.md"
           sed -i 's|<img src="https://img.shields.io/badge/Unit_Tests-[^"]*-magenta?style=flat-square"|<img src="https://img.shields.io/badge/Unit_Tests-'$unittest_count'-magenta?style=flat-square"|g' README.md
