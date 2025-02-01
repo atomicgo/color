@@ -31,6 +31,23 @@ func NewStyle(foregroundColor, backgroundColor Color, modifiers ...Modifier) Sty
 	}
 }
 
+// AddModifier adds a modifier to the style, if it's not already present.
+func (s *Style) AddModifier(m Modifier) {
+	for _, modifier := range s.Modifiers {
+		if modifier == m {
+			return
+		}
+	}
+
+	s.Modifiers = append(s.Modifiers, m)
+}
+
+// WithModifier returns a new Style with the given modifier added, if it's not already present.
+func (s Style) WithModifier(m Modifier) Style {
+	s.AddModifier(m)
+	return s
+}
+
 // Sequence returns the ANSI escape sequence for the style.
 func (s Style) Sequence() string {
 	var sb strings.Builder
