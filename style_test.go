@@ -3,6 +3,8 @@ package color
 import "testing"
 
 func TestStyle_AddModifier(t *testing.T) {
+	t.Parallel()
+
 	s := NewStyle(nil, nil)
 	s.AddModifier(Bold)
 
