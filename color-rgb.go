@@ -42,7 +42,7 @@ func NewColorFromHex(hex string) Color {
 		return NoColor
 	}
 
-	return NewColorFromRGB(uint8(r), uint8(g), uint8(b))
+	return NewColorFromRGB(uint8(r), uint8(g), uint8(b)) //nolint:gosec
 }
 
 // Sequence returns the ANSI escape sequence for the color.

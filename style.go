@@ -32,19 +32,19 @@ func NewStyle(foregroundColor, backgroundColor Color, modifiers ...Modifier) Sty
 }
 
 // AddModifier adds a modifier to the style, if it's not already present.
-func (s *Style) AddModifier(m Modifier) {
-	for _, modifier := range s.Modifiers {
-		if modifier == m {
+func (s *Style) AddModifier(modifier Modifier) {
+	for _, mod := range s.Modifiers {
+		if mod == modifier {
 			return
 		}
 	}
 
-	s.Modifiers = append(s.Modifiers, m)
+	s.Modifiers = append(s.Modifiers, modifier)
 }
 
 // WithModifier returns a new Style with the given modifier added, if it's not already present.
-func (s Style) WithModifier(m Modifier) Style {
-	s.AddModifier(m)
+func (s Style) WithModifier(modifier Modifier) Style {
+	s.AddModifier(modifier)
 	return s
 }
 
