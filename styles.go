@@ -15,7 +15,7 @@ var (
 	BrightYellow = NewStyle(ANSIBrightYellow, nil).Sprint
 
 	Blue       = NewStyle(ANSIBlue, nil).Sprint
-	BrigthBlue = NewStyle(ANSIBrightBlue, nil).Sprint
+	BrightBlue = NewStyle(ANSIBrightBlue, nil).Sprint
 
 	Magenta       = NewStyle(ANSIMagenta, nil).Sprint
 	BrightMagenta = NewStyle(ANSIBrightMagenta, nil).Sprint

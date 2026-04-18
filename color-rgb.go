@@ -22,27 +22,36 @@ func NewColorFromRGB(r, g, b uint8) Color {
 }
 
 // NewColorFromHex creates a new Color from a hex string.
-// If the hex string is invalid, NoColor is returned.
+// Accepts both the 6-digit form ("#RRGGBB"/"RRGGBB") and the 3-digit
+// shorthand ("#RGB"/"RGB"). If the hex string is invalid, NoColor is returned.
 func NewColorFromHex(hex string) Color {
 	hex = strings.TrimPrefix(hex, "#")
 
-	// Parse the hex string to integer values for R, G, and B
-	r, err := strconv.ParseInt(hex[0:2], 16, 32)
+	// Expand 3-digit shorthand (e.g. "f0a" -> "ff00aa").
+	if len(hex) == 3 {
+		hex = string([]byte{hex[0], hex[0], hex[1], hex[1], hex[2], hex[2]})
+	}
+
+	if len(hex) != 6 {
+		return NoColor
+	}
+
+	r, err := strconv.ParseUint(hex[0:2], 16, 8)
 	if err != nil {
 		return NoColor
 	}
 
-	g, err := strconv.ParseInt(hex[2:4], 16, 32)
+	g, err := strconv.ParseUint(hex[2:4], 16, 8)
 	if err != nil {
 		return NoColor
 	}
 
-	b, err := strconv.ParseInt(hex[4:6], 16, 32)
+	b, err := strconv.ParseUint(hex[4:6], 16, 8)
 	if err != nil {
 		return NoColor
 	}
 
-	return NewColorFromRGB(uint8(r), uint8(g), uint8(b)) //nolint:gosec
+	return NewColorFromRGB(uint8(r), uint8(g), uint8(b))
 }
 
 // Sequence returns the ANSI escape sequence for the color.
