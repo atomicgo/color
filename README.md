@@ -33,7 +33,7 @@
 </a>
 
 <a href="https://codecov.io/gh/atomicgo/color">
-<!-- unittestcount:start --><img src="https://img.shields.io/badge/Unit_Tests-1-magenta?style=flat-square" alt="Unit test count"><!-- unittestcount:end -->
+<!-- unittestcount:start --><img src="https://img.shields.io/badge/Unit_Tests-111-magenta?style=flat-square" alt="Unit test count"><!-- unittestcount:end -->
 </a>
 
 <a href="https://opensource.org/licenses/MIT" target="_blank">
@@ -191,7 +191,7 @@ var (
     BrightYellow = NewStyle(ANSIBrightYellow, nil).Sprint
 
     Blue       = NewStyle(ANSIBlue, nil).Sprint
-    BrigthBlue = NewStyle(ANSIBrightBlue, nil).Sprint
+    BrightBlue = NewStyle(ANSIBrightBlue, nil).Sprint
 
     Magenta       = NewStyle(ANSIMagenta, nil).Sprint
     BrightMagenta = NewStyle(ANSIBrightMagenta, nil).Sprint
@@ -303,13 +303,13 @@ var NoColor Color = noColor{}
 ```
 
 <a name="NewColorFromHex"></a>
-### func [NewColorFromHex](<https://github.com/atomicgo/color/blob/main/color-rgb.go#L26>)
+### func [NewColorFromHex](<https://github.com/atomicgo/color/blob/main/color-rgb.go#L27>)
 
 ```go
 func NewColorFromHex(hex string) Color
 ```
 
-NewColorFromHex creates a new Color from a hex string. If the hex string is invalid, NoColor is returned.
+NewColorFromHex creates a new Color from a hex string. Accepts both the 6\-digit form \("\#RRGGBB"/"RRGGBB"\) and the 3\-digit shorthand \("\#RGB"/"RGB"\). If the hex string is invalid, NoColor is returned.
 
 <a name="NewColorFromRGB"></a>
 ### func [NewColorFromRGB](<https://github.com/atomicgo/color/blob/main/color-rgb.go#L20>)
@@ -401,7 +401,7 @@ func (c RGBColor) Hex() string
 Hex returns the hex representation of the color.
 
 <a name="RGBColor.Sequence"></a>
-### func \(RGBColor\) [Sequence](<https://github.com/atomicgo/color/blob/main/color-rgb.go#L49>)
+### func \(RGBColor\) [Sequence](<https://github.com/atomicgo/color/blob/main/color-rgb.go#L58>)
 
 ```go
 func (c RGBColor) Sequence(background bool) string
