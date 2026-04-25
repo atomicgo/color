@@ -72,7 +72,7 @@ func (s Style) Sprint(a ...any) string {
 	var sb strings.Builder
 
 	sb.WriteString(s.Sequence())
-	fmt.Fprint(&sb, a)
+	fmt.Fprint(&sb, a...)
 	sb.WriteString(Reset.Sequence())
 
 	return sb.String()

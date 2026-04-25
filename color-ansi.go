@@ -2,6 +2,7 @@ package color
 
 import "fmt"
 
+// ANSI color constants define the standard foreground color palette.
 const (
 	ANSIBlack ANSIColor = iota
 	ANSIRed

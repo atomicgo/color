@@ -1,7 +1,7 @@
 package color
 
+// Color shortcut functions apply common ANSI styles to text.
 var (
-	// ANSI colors
 	Black       = NewStyle(ANSIBlack, nil).Sprint
 	BrightBlack = NewStyle(ANSIBrightBlack, nil).Sprint
 
@@ -26,7 +26,6 @@ var (
 	White       = NewStyle(ANSIWhite, nil).Sprint
 	BrightWhite = NewStyle(ANSIBrightWhite, nil).Sprint
 
-	// Special colors
 	Success = NewStyle(ANSIBrightGreen, nil).Sprint
 	Info    = NewStyle(ANSIBrightBlue, nil).Sprint
 	Warning = NewStyle(ANSIBrightYellow, nil).Sprint

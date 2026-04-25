@@ -3,6 +3,7 @@ package color
 // Mode represents the color mode used by the terminal.
 type Mode int
 
+// Color modes describe the terminal color capabilities.
 const (
 	TrueColor Mode = iota
 	ANSI256
