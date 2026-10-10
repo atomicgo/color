@@ -2,691 +2,247 @@ package color
 
 import (
 	"bytes"
-	"fmt"
-	"strings"
+	"errors"
 	"testing"
 )
 
-func TestANSIColor_Sequence(t *testing.T) {
+func TestParse(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name       string
-		color      ANSIColor
-		background bool
-		want       string
+		in   string
+		want Color
 	}{
-		{"black foreground", ANSIBlack, false, "\033[38;5;0m"},
-		{"red foreground", ANSIRed, false, "\033[38;5;1m"},
-		{"white foreground", ANSIWhite, false, "\033[38;5;7m"},
-		{"bright black foreground", ANSIBrightBlack, false, "\033[38;5;8m"},
-		{"bright white foreground", ANSIBrightWhite, false, "\033[38;5;15m"},
-		{"black background", ANSIBlack, true, "\033[48;5;0m"},
-		{"red background", ANSIRed, true, "\033[48;5;1m"},
-		{"bright white background", ANSIBrightWhite, true, "\033[48;5;15m"},
+		{"#b7bdf8", RGB(0xb7, 0xbd, 0xf8)},
+		{"B7BDF8", RGB(0xb7, 0xbd, 0xf8)},
+		{"#fff", RGB(255, 255, 255)},
+		{"red", Red},
+		{"Bright-Blue", BrightBlue},
+		{"bright_white", BrightWhite},
+		{"gray", BrightBlack},
+		{"208", Index(208)},
+		{"0", Index(0)},
+		{"", None},
+		{"none", None},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+	for _, tt := range tests {
+		got, err := Parse(tt.in)
+		if err != nil {
+			t.Errorf("Parse(%q) error: %v", tt.in, err)
+			continue
+		}
 
-			if got := tc.color.Sequence(tc.background); got != tc.want {
-				t.Errorf("Sequence(%v) = %q, want %q", tc.background, got, tc.want)
-			}
-		})
+		if got != tt.want {
+			t.Errorf("Parse(%q) = %v, want %v", tt.in, got, tt.want)
+		}
+	}
+
+	for _, bad := range []string{"#12", "purple-ish", "256", "#ggg"} {
+		if _, err := Parse(bad); !errors.Is(err, ErrInvalidColor) {
+			t.Errorf("Parse(%q) error = %v, want ErrInvalidColor", bad, err)
+		}
 	}
 }
 
-func TestANSIColor_ImplementsColor(t *testing.T) {
+func TestColorString(t *testing.T) {
 	t.Parallel()
 
-	var _ Color = ANSIRed
+	for _, c := range []Color{Red, BrightCyan, Index(42), RGB(1, 2, 3), None} {
+		back, err := Parse(c.String())
+		if err != nil || back != c {
+			t.Errorf("Parse(%q) = %v, %v; want %v", c.String(), back, err, c)
+		}
+	}
 }
 
-func TestANSI256Color_String(t *testing.T) {
+func TestSequenceDownsamples(t *testing.T) {
 	t.Parallel()
+
+	lavender := RGB(0xb7, 0xbd, 0xf8)
 
 	tests := []struct {
 		name  string
-		color ANSI256Color
+		style Style
+		level Level
 		want  string
 	}{
-		{"first color", ANSI256Color(0), "#000000"},
-		{"red", ANSI256Color(9), "#ff0000"},
-		{"bright red in 256", ANSI256Color(196), "#ff0000"},
-		{"last grayscale", ANSI256Color(255), "#eeeeee"},
+		{"truecolor", lavender.Fg(), LevelTrueColor, "\x1b[38;2;183;189;248m"},
+		{"256", lavender.Fg(), Level256, "\x1b[38;5;147m"},
+		{"basic", lavender.Fg(), LevelBasic, "\x1b[37m"},
+		{"none", lavender.Fg(), LevelNone, ""},
+		{"basic color stays basic", Red.Fg(), LevelTrueColor, "\x1b[31m"},
+		{"bright background", BrightBlue.Bg(), LevelBasic, "\x1b[104m"},
+		{"index at truecolor", Index(208).Fg(), LevelTrueColor, "\x1b[38;5;208m"},
+		{"index at basic", Index(196).Fg(), LevelBasic, "\x1b[91m"},
+		{"attrs and colors", New(Bold, Underline).Fg(Green).Bg(Black), LevelBasic, "\x1b[1;4;32;40m"},
+		{"zero", Style{}, LevelTrueColor, ""},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			if got := tc.color.String(); got != tc.want {
-				t.Errorf("String() = %q, want %q", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestANSI256Color_Sequence(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name       string
-		color      ANSI256Color
-		background bool
-		want       string
-	}{
-		{"red foreground", ANSI256Color(9), false, "\033[38;2;255;0;0m"},
-		{"red background", ANSI256Color(9), true, "\033[48;2;255;0;0m"},
-		{"black foreground", ANSI256Color(0), false, "\033[38;2;0;0;0m"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			if got := tc.color.Sequence(tc.background); got != tc.want {
-				t.Errorf("Sequence(%v) = %q, want %q", tc.background, got, tc.want)
-			}
-		})
-	}
-}
-
-func TestANSI256Color_ImplementsColor(t *testing.T) {
-	t.Parallel()
-
-	var _ Color = ANSI256Color(0)
-}
-
-func TestANSI256Color_TableCoverage(t *testing.T) {
-	t.Parallel()
-
-	// Every entry should be a valid 7-char hex string. This guards against
-	// accidental corruption of the lookup table.
-	for i, hex := range ansi256Table {
-		if len(hex) != 7 || hex[0] != '#' {
-			t.Errorf("ansi256Table[%d] = %q, want 7-char \"#RRGGBB\"", i, hex)
+	for _, tt := range tests {
+		if got := tt.style.Sequence(tt.level); got != tt.want {
+			t.Errorf("%s: Sequence = %q, want %q", tt.name, got, tt.want)
 		}
 	}
 }
 
-func TestRGBColor_Hex(t *testing.T) {
+func TestRenderNests(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name  string
-		color RGBColor
-		want  string
-	}{
-		{"black", RGBColor{0, 0, 0}, "#000000"},
-		{"white", RGBColor{255, 255, 255}, "#FFFFFF"},
-		{"red", RGBColor{255, 0, 0}, "#FF0000"},
-		{"green", RGBColor{0, 255, 0}, "#00FF00"},
-		{"blue", RGBColor{0, 0, 255}, "#0000FF"},
-		{"mid gray", RGBColor{128, 128, 128}, "#808080"},
-	}
+	inner := Red.Fg().Render(LevelBasic, "inner")
+	got := New(Bold).Render(LevelBasic, "a "+inner+" b")
+	want := "\x1b[1ma \x1b[31minner\x1b[0m\x1b[1m b\x1b[0m"
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			if got := tc.color.Hex(); got != tc.want {
-				t.Errorf("Hex() = %q, want %q", got, tc.want)
-			}
-		})
+	if got != want {
+		t.Errorf("Render = %q, want %q", got, want)
 	}
 }
 
-func TestRGBColor_Sequence(t *testing.T) {
+func TestRenderPerLine(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name       string
-		color      RGBColor
-		background bool
-		want       string
-	}{
-		{"red foreground", RGBColor{255, 0, 0}, false, "\033[38;2;255;0;0m"},
-		{"red background", RGBColor{255, 0, 0}, true, "\033[48;2;255;0;0m"},
-		{"black foreground", RGBColor{0, 0, 0}, false, "\033[38;2;0;0;0m"},
-		{"white background", RGBColor{255, 255, 255}, true, "\033[48;2;255;255;255m"},
+	got := Red.Bg().Render(LevelBasic, "a\n\nb")
+	want := "\x1b[41ma\x1b[0m\n\n\x1b[41mb\x1b[0m"
+
+	if got != want {
+		t.Errorf("Render = %q, want %q", got, want)
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			if got := tc.color.Sequence(tc.background); got != tc.want {
-				t.Errorf("Sequence(%v) = %q, want %q", tc.background, got, tc.want)
-			}
-		})
+	if got := Red.Fg().Render(LevelNone, "a"); got != "a" {
+		t.Errorf("Render at LevelNone = %q, want plain text", got)
 	}
 }
 
-func TestRGBColor_ImplementsColor(t *testing.T) {
+func TestStrip(t *testing.T) {
 	t.Parallel()
 
-	var _ Color = RGBColor{}
-}
-
-func TestNewColorFromRGB(t *testing.T) {
-	t.Parallel()
-
-	c := NewColorFromRGB(10, 20, 30)
-
-	rgb, ok := c.(RGBColor)
-	if !ok {
-		t.Fatalf("NewColorFromRGB returned %T, want RGBColor", c)
-	}
-
-	if rgb.R != 10 || rgb.G != 20 || rgb.B != 30 {
-		t.Errorf("NewColorFromRGB = {%d, %d, %d}, want {10, 20, 30}", rgb.R, rgb.G, rgb.B)
+	styled := New(Bold).Fg(Red).Render(LevelTrueColor, "hi") + Hyperlink(LevelBasic, "https://pterm.sh", "link") + "\x1b[2K"
+	if got := Strip(styled); got != "hilink" {
+		t.Errorf("Strip = %q, want %q", got, "hilink")
 	}
 }
 
-func TestNewColorFromHex_Valid(t *testing.T) {
+func TestDetect(t *testing.T) {
 	t.Parallel()
+
+	env := func(vars map[string]string) func(string) string {
+		return func(k string) string { return vars[k] }
+	}
 
 	tests := []struct {
 		name string
-		hex  string
-		want RGBColor
+		vars map[string]string
+		tty  bool
+		want Level
 	}{
-		{"with hash", "#ff0000", RGBColor{255, 0, 0}},
-		{"without hash", "00ff00", RGBColor{0, 255, 0}},
-		{"mixed case", "#AaBbCc", RGBColor{0xAA, 0xBB, 0xCC}},
-		{"black", "#000000", RGBColor{0, 0, 0}},
-		{"white", "#ffffff", RGBColor{255, 255, 255}},
-		{"shorthand 3-digit", "#f0a", RGBColor{0xFF, 0x00, 0xAA}},
-		{"shorthand without hash", "abc", RGBColor{0xAA, 0xBB, 0xCC}},
+		{"pipe", map[string]string{"COLORTERM": "truecolor"}, false, LevelNone},
+		{"pipe forced", map[string]string{"FORCE_COLOR": "1"}, false, LevelBasic},
+		{"pipe forced 3", map[string]string{"FORCE_COLOR": "3"}, false, LevelTrueColor},
+		{"force off wins", map[string]string{"FORCE_COLOR": "0", "COLORTERM": "truecolor"}, true, LevelNone},
+		{"clicolor force", map[string]string{"CLICOLOR_FORCE": "1", "TERM": "xterm-256color"}, false, Level256},
+		{"no color", map[string]string{"NO_COLOR": "1", "COLORTERM": "truecolor"}, true, LevelNone},
+		{"truecolor", map[string]string{"COLORTERM": "truecolor"}, true, LevelTrueColor},
+		{"256", map[string]string{"TERM": "xterm-256color"}, true, Level256},
+		{"dumb", map[string]string{"TERM": "dumb"}, true, LevelNone},
+		{"kitty", map[string]string{"TERM": "xterm-kitty"}, true, LevelTrueColor},
+		{"windows terminal", map[string]string{"WT_SESSION": "x"}, true, LevelTrueColor},
+		{"unknown terminal", map[string]string{}, true, LevelBasic},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+	for _, tt := range tests {
+		if got := detect(env(tt.vars), tt.tty, LevelNone, false); got != tt.want {
+			t.Errorf("%s: detect = %v, want %v", tt.name, got, tt.want)
+		}
+	}
 
-			c := NewColorFromHex(tc.hex)
-
-			rgb, ok := c.(RGBColor)
-			if !ok {
-				t.Fatalf("NewColorFromHex(%q) returned %T, want RGBColor", tc.hex, c)
-			}
-
-			if rgb != tc.want {
-				t.Errorf("NewColorFromHex(%q) = %+v, want %+v", tc.hex, rgb, tc.want)
-			}
-		})
+	// A legacy Windows console without ANSI support gets plain text.
+	if got := detect(env(nil), true, LevelNone, true); got != LevelNone {
+		t.Errorf("legacy console: detect = %v, want none", got)
 	}
 }
 
-func TestNewColorFromHex_Invalid(t *testing.T) {
+func TestDetectBuffer(t *testing.T) {
+	t.Setenv("FORCE_COLOR", "")
+	t.Setenv("CLICOLOR_FORCE", "")
+
+	if got := Detect(&bytes.Buffer{}); got != LevelNone {
+		t.Errorf("Detect(buffer) = %v, want none", got)
+	}
+
+	SetLevel(Level256)
+
+	defer ResetLevel()
+
+	if got := Detect(&bytes.Buffer{}); got != Level256 {
+		t.Errorf("Detect with SetLevel = %v, want 256", got)
+	}
+}
+
+func TestOSC11(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
-		hex  string
+		in   string
+		want Color
+		ok   bool
 	}{
-		{"empty string", ""},
-		{"only hash", "#"},
-		{"too short", "#12"},
-		{"4 chars", "#1234"},
-		{"5 chars", "#12345"},
-		{"too long", "#1234567"},
-		{"non-hex chars", "#gggggg"},
-		{"non-hex in green", "#00zz00"},
-		{"non-hex in blue", "#0000zz"},
-		{"non-hex 3-digit", "#xyz"},
+		{"\x1b]11;rgb:2424/2727/3a3a\x1b\\", RGB(0x24, 0x27, 0x3a), true},
+		{"\x1b]11;rgb:ff/ff/ff\x07", RGB(255, 255, 255), true},
+		{"\x1b]11;rgba:0000/0000/0000/ffff\x1b\\", RGB(0, 0, 0), true},
+		{"\x1b]11;rgb:f/0/0\x07", RGB(255, 0, 0), true},
+		{"garbage", None, false},
+		{"\x1b]11;rgb:zz/00/00\x07", None, false},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
+	for _, tt := range tests {
+		got, ok := parseOSC11(tt.in)
+		if ok != tt.ok || got != tt.want {
+			t.Errorf("parseOSC11(%q) = %v, %v; want %v, %v", tt.in, got, ok, tt.want, tt.ok)
+		}
+	}
 
-			if got := NewColorFromHex(tc.hex); got != NoColor {
-				t.Errorf("NewColorFromHex(%q) = %v, want NoColor", tc.hex, got)
-			}
-		})
+	if c, ok := parseColorFgBg("15;0"); !ok || c != Black || !c.IsDark() {
+		t.Errorf("COLORFGBG 15;0 = %v, %v; want dark black", c, ok)
+	}
+
+	if c, ok := parseColorFgBg("0;default;15"); !ok || c.IsDark() {
+		t.Errorf("COLORFGBG 0;default;15 = %v, %v; want light", c, ok)
 	}
 }
 
-func TestNewColorFromHex_RoundTrip(t *testing.T) {
+func TestMixAndLuminance(t *testing.T) {
 	t.Parallel()
 
-	original := RGBColor{R: 0x12, G: 0x34, B: 0x56}
-
-	c := NewColorFromHex(original.Hex())
-
-	rgb, ok := c.(RGBColor)
-	if !ok {
-		t.Fatalf("round-trip returned %T, want RGBColor", c)
+	black, white := RGB(0, 0, 0), RGB(255, 255, 255)
+	if got := black.Mix(white, 0.5); got != RGB(128, 128, 128) {
+		t.Errorf("Mix = %v", got)
 	}
 
-	if rgb != original {
-		t.Errorf("round-trip = %+v, want %+v", rgb, original)
+	if !RGB(0x24, 0x27, 0x3a).IsDark() || RGB(0xef, 0xf1, 0xf5).IsDark() {
+		t.Error("IsDark misjudges Macchiato base or Latte base")
+	}
+
+	if r, g, b := Index(196).RGB(); r != 255 || g != 0 || b != 0 {
+		t.Errorf("Index(196).RGB = %d,%d,%d", r, g, b)
+	}
+
+	if r, g, b := Index(232).RGB(); r != 8 || g != 8 || b != 8 {
+		t.Errorf("Index(232).RGB = %d,%d,%d", r, g, b)
 	}
 }
 
-func TestNoColor_Sequence(t *testing.T) {
+func TestDownsampleRoundTrip(t *testing.T) {
 	t.Parallel()
 
-	if got := NoColor.Sequence(false); got != "" {
-		t.Errorf("NoColor.Sequence(false) = %q, want empty", got)
-	}
-
-	if got := NoColor.Sequence(true); got != "" {
-		t.Errorf("NoColor.Sequence(true) = %q, want empty", got)
-	}
-}
-
-func TestModifier_Sequence(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		modifier Modifier
-		want     string
-	}{
-		{"reset", Reset, "\033[0m"},
-		{"bold", Bold, "\033[1m"},
-		{"faint", Faint, "\033[2m"},
-		{"italic", Italic, "\033[3m"},
-		{"underline", Underline, "\033[4m"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			if got := tc.modifier.Sequence(); got != tc.want {
-				t.Errorf("Sequence() = %q, want %q", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestMode_String(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name string
-		mode Mode
-		want string
-	}{
-		{"TrueColor", TrueColor, "TrueColor"},
-		{"ANSI256", ANSI256, "ANSI256"},
-		{"ANSI", ANSI, "ANSI"},
-		{"Disabled", Disabled, "Disabled"},
-		{"unknown", Mode(99), "Unknown"},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			if got := tc.mode.String(); got != tc.want {
-				t.Errorf("String() = %q, want %q", got, tc.want)
-			}
-		})
-	}
-}
-
-func TestNewStyle_NilColorsBecomeNoColor(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(nil, nil)
-
-	if s.Foreground != NoColor {
-		t.Errorf("Foreground = %v, want NoColor", s.Foreground)
-	}
-
-	if s.Background != NoColor {
-		t.Errorf("Background = %v, want NoColor", s.Background)
-	}
-
-	if len(s.Modifiers) != 0 {
-		t.Errorf("Modifiers = %v, want empty", s.Modifiers)
-	}
-}
-
-func TestNewStyle_WithColorsAndModifiers(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(ANSIRed, ANSIBlue, Bold, Underline)
-
-	if s.Foreground != ANSIRed {
-		t.Errorf("Foreground = %v, want ANSIRed", s.Foreground)
-	}
-
-	if s.Background != ANSIBlue {
-		t.Errorf("Background = %v, want ANSIBlue", s.Background)
-	}
-
-	if len(s.Modifiers) != 2 || s.Modifiers[0] != Bold || s.Modifiers[1] != Underline {
-		t.Errorf("Modifiers = %v, want [Bold, Underline]", s.Modifiers)
-	}
-}
-
-func TestStyle_AddModifier_Deduplicates(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(nil, nil)
-	s.AddModifier(Bold)
-	s.AddModifier(Bold)
-	s.AddModifier(Italic)
-	s.AddModifier(Italic)
-
-	if len(s.Modifiers) != 2 {
-		t.Errorf("Modifiers = %v, want [Bold, Italic]", s.Modifiers)
-	}
-}
-
-func TestStyle_WithModifier(t *testing.T) {
-	t.Parallel()
-
-	base := NewStyle(nil, nil)
-	extended := base.WithModifier(Bold)
-
-	if len(base.Modifiers) != 0 {
-		t.Errorf("WithModifier mutated receiver: %v", base.Modifiers)
-	}
-
-	if len(extended.Modifiers) != 1 || extended.Modifiers[0] != Bold {
-		t.Errorf("extended.Modifiers = %v, want [Bold]", extended.Modifiers)
-	}
-}
-
-func TestStyle_Sequence(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(ANSIRed, ANSIBlue, Bold)
-
-	want := ANSIRed.Sequence(false) + ANSIBlue.Sequence(true) + Bold.Sequence()
-	if got := s.Sequence(); got != want {
-		t.Errorf("Sequence() = %q, want %q", got, want)
-	}
-}
-
-func TestStyle_Sequence_NoColors(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(nil, nil, Bold)
-
-	// NoColor contributes no sequence, so only Bold is emitted.
-	if got, want := s.Sequence(), Bold.Sequence(); got != want {
-		t.Errorf("Sequence() = %q, want %q", got, want)
-	}
-}
-
-func TestStyle_Sprint(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(ANSIRed, nil)
-
-	got := s.Sprint("hello")
-
-	if !strings.HasPrefix(got, s.Sequence()) {
-		t.Errorf("Sprint result %q missing style prefix", got)
-	}
-
-	if !strings.HasSuffix(got, Reset.Sequence()) {
-		t.Errorf("Sprint result %q missing reset suffix", got)
-	}
-
-	if !strings.Contains(got, "hello") {
-		t.Errorf("Sprint result %q missing payload", got)
-	}
-}
-
-func TestStyle_Sprintf(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(ANSIRed, nil)
-
-	got := s.Sprintf("hello %s %d", "world", 42)
-
-	if !strings.Contains(got, "hello world 42") {
-		t.Errorf("Sprintf result %q missing formatted payload", got)
-	}
-}
-
-func TestStyle_Fprint(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(ANSIRed, nil)
-
-	var buf bytes.Buffer
-
-	n, err := s.Fprint(&buf, "hello")
-	if err != nil {
-		t.Fatalf("Fprint returned error: %v", err)
-	}
-
-	if n != buf.Len() {
-		t.Errorf("Fprint returned n=%d, buffer has %d", n, buf.Len())
-	}
-
-	if !strings.Contains(buf.String(), "hello") {
-		t.Errorf("Fprint wrote %q, missing payload", buf.String())
-	}
-}
-
-func TestStyle_Fprintf(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(ANSIRed, nil)
-
-	var buf bytes.Buffer
-
-	if _, err := s.Fprintf(&buf, "hello %s", "world"); err != nil {
-		t.Fatalf("Fprintf returned error: %v", err)
-	}
-
-	if !strings.Contains(buf.String(), "hello world") {
-		t.Errorf("Fprintf wrote %q, missing payload", buf.String())
-	}
-}
-
-func TestStyle_Fprintln(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(ANSIRed, nil)
-
-	var buf bytes.Buffer
-
-	if _, err := s.Fprintln(&buf, "hello"); err != nil {
-		t.Fatalf("Fprintln returned error: %v", err)
-	}
-
-	if !strings.HasSuffix(buf.String(), "\n") {
-		t.Errorf("Fprintln result %q missing trailing newline", buf.String())
-	}
-}
-
-func TestStyle_Fprintfln(t *testing.T) {
-	t.Parallel()
-
-	s := NewStyle(ANSIRed, nil)
-
-	var buf bytes.Buffer
-
-	if _, err := s.Fprintfln(&buf, "hello %s", "world"); err != nil {
-		t.Fatalf("Fprintfln returned error: %v", err)
-	}
-
-	if !strings.Contains(buf.String(), "hello world") {
-		t.Errorf("Fprintfln wrote %q, missing payload", buf.String())
-	}
-
-	if !strings.HasSuffix(buf.String(), "\n") {
-		t.Errorf("Fprintfln result %q missing trailing newline", buf.String())
-	}
-}
-
-func TestStyle_Print_WritesToWriter(t *testing.T) {
-	// Not parallel: mutates the package-level Writer.
-	var buf bytes.Buffer
-
-	oldWriter := Writer
-	Writer = &buf
-
-	t.Cleanup(func() { Writer = oldWriter })
-
-	NewStyle(ANSIRed, nil).Print("hello")
-
-	if !strings.Contains(buf.String(), "hello") {
-		t.Errorf("Print wrote %q, missing payload", buf.String())
-	}
-}
-
-func TestStyle_Printf_WritesToWriter(t *testing.T) {
-	var buf bytes.Buffer
-
-	oldWriter := Writer
-	Writer = &buf
-
-	t.Cleanup(func() { Writer = oldWriter })
-
-	NewStyle(ANSIRed, nil).Printf("hello %s", "world")
-
-	if !strings.Contains(buf.String(), "hello world") {
-		t.Errorf("Printf wrote %q, missing payload", buf.String())
-	}
-}
-
-func TestStyle_Println_WritesToWriter(t *testing.T) {
-	var buf bytes.Buffer
-
-	oldWriter := Writer
-	Writer = &buf
-
-	t.Cleanup(func() { Writer = oldWriter })
-
-	NewStyle(ANSIRed, nil).Println("hello")
-
-	if !strings.HasSuffix(buf.String(), "\n") {
-		t.Errorf("Println output %q missing trailing newline", buf.String())
-	}
-}
-
-func TestStyle_Printfln_WritesToWriter(t *testing.T) {
-	var buf bytes.Buffer
-
-	oldWriter := Writer
-	Writer = &buf
-
-	t.Cleanup(func() { Writer = oldWriter })
-
-	NewStyle(ANSIRed, nil).Printfln("hello %s", "world")
-
-	out := buf.String()
-	if !strings.Contains(out, "hello world") || !strings.HasSuffix(out, "\n") {
-		t.Errorf("Printfln wrote %q, want payload + newline", out)
-	}
-}
-
-func TestPresetStyleFuncs(t *testing.T) {
-	t.Parallel()
-
-	// Each preset wraps the payload with its own escape sequence and a Reset.
-	tests := []struct {
-		name string
-		fn   func(a ...any) string
-	}{
-		{"Black", Black},
-		{"BrightBlack", BrightBlack},
-		{"Red", Red},
-		{"BrightRed", BrightRed},
-		{"Green", Green},
-		{"BrightGreen", BrightGreen},
-		{"Yellow", Yellow},
-		{"BrightYellow", BrightYellow},
-		{"Blue", Blue},
-		{"BrightBlue", BrightBlue},
-		{"Magenta", Magenta},
-		{"BrightMagenta", BrightMagenta},
-		{"Cyan", Cyan},
-		{"BrightCyan", BrightCyan},
-		{"White", White},
-		{"BrightWhite", BrightWhite},
-		{"Success", Success},
-		{"Info", Info},
-		{"Warning", Warning},
-		{"Error", Error},
-		{"Fatal", Fatal},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			out := tc.fn("hi")
-			if !strings.Contains(out, "hi") {
-				t.Errorf("%s(%q) = %q, missing payload", tc.name, "hi", out)
-			}
-
-			if !strings.HasSuffix(out, Reset.Sequence()) {
-				t.Errorf("%s output %q missing Reset suffix", tc.name, out)
-			}
-		})
-	}
-}
-
-func TestWriter_DefaultIsStdout(t *testing.T) {
-	t.Parallel()
-
-	// The package exposes Writer as a mutable var; it should default to a
-	// non-nil sink so zero-configuration use of Print* does not panic.
-	if Writer == nil {
-		t.Fatal("Writer is nil on package init")
-	}
-}
-
-// Sanity check that the ANSI256 -> RGB -> Sequence pipeline produces a
-// truecolor escape that matches a direct construction from the same hex.
-func TestANSI256_MatchesHex(t *testing.T) {
-	t.Parallel()
-
-	for i, hex := range ansi256Table {
-		fromTable := ANSI256Color(i).Sequence(false)
-		fromHex := NewColorFromHex(hex).Sequence(false)
-
-		if fromTable != fromHex {
-			t.Fatalf("index %d: ANSI256 sequence %q != hex sequence %q", i, fromTable, fromHex)
+	for i := range 256 {
+		r, g, b := index256ToRGB(uint8(i))
+		if got := rgbTo256(r, g, b); i >= 16 && index256ToRGB2(got) != [3]uint8{r, g, b} {
+			t.Errorf("rgbTo256(index %d) = %d", i, got)
 		}
 	}
 }
 
-// Double-check the escape character encoding used by all color sequences.
-func TestSequencesUseEscChar(t *testing.T) {
-	t.Parallel()
-
-	seqs := []string{
-		ANSIRed.Sequence(false),
-		ANSI256Color(9).Sequence(false),
-		RGBColor{1, 2, 3}.Sequence(false),
-		Bold.Sequence(),
-	}
-
-	for _, s := range seqs {
-		if !strings.HasPrefix(s, "\x1b[") {
-			t.Errorf("%q does not start with ESC[", s)
-		}
-
-		if !strings.HasSuffix(s, "m") {
-			t.Errorf("%q does not end with 'm'", s)
-		}
-	}
-}
-
-// Ensure RGBColor.Hex is compatible with fmt.Sprintf's %X verb format.
-func TestRGBColor_Hex_MatchesSprintf(t *testing.T) {
-	t.Parallel()
-
-	c := RGBColor{R: 1, G: 2, B: 3}
-
-	want := fmt.Sprintf("#%02X%02X%02X", c.R, c.G, c.B)
-	if got := c.Hex(); got != want {
-		t.Errorf("Hex() = %q, want %q", got, want)
-	}
+func index256ToRGB2(n uint8) [3]uint8 {
+	r, g, b := index256ToRGB(n)
+	return [3]uint8{r, g, b}
 }
